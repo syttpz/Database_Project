@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Register · SkyWay Airlines{% endblock %}
+
+{% block content %}
+<main class="center">
+  <div class="card">
+    <h1>Create your account</h1>
+    <p class="sub">Choose the type of account you'd like to register.</p>
+
+    <div class="cta-row vertical">
+      <a class="cta-card" href="{{ url_for('register_customer') }}">
+        <h3>Customer</h3>
+        <p>Search, book tickets, view your flights, and rate trips.</p>
+        <span class="go">Register as customer →</span>
+      </a>
+      <a class="cta-card" href="{{ url_for('register_staff') }}">
+        <h3>Airline Staff</h3>
+        <p>Manage flights, airplanes, statuses, ratings, and reports.</p>
+        <span class="go">Register as staff →</span>
+      </a>
+    </div>
+
+    <p class="foot">
+      Already have an account? <a href="{{ url_for('login') }}">Sign in</a>
+    </p>
+  </div>
+</main>
+{% endblock %}

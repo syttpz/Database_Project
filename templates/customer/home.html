@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "_macros.html" import flight_table %}
+{% block title %}My account · SkyWay{% endblock %}
+
+{% block content %}
+<main class="dash-wrap">
+  <div class="dash-head">
+    <h1>Welcome, {{ current_name or current_user }} 👋</h1>
+    <p>What would you like to do today?</p>
+  </div>
+
+  <div class="tile-grid">
+    <a class="tile" href="{{ url_for('customer_my_flights') }}">
+      <span class="icon">
+        <svg viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5A1.5 1.5 0 0 0 11.5 2 1.5 1.5 0 0 0 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5L21 16z"/></svg>
+      </span>
+      <h3>My flights</h3>
+      <p>See your upcoming and past flights.</p>
+      <span class="go">View →</span>
+    </a>
+    <a class="tile" href="{{ url_for('search') }}">
+      <span class="icon">
+        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0A4.5 4.5 0 1 1 14 9.5 4.49 4.49 0 0 1 9.5 14z"/></svg>
+      </span>
+      <h3>Search & book</h3>
+      <p>Find future flights and purchase tickets.</p>
+      <span class="go">Search →</span>
+    </a>
+    <a class="tile" href="{{ url_for('customer_rate') }}">
+      <span class="icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61z"/></svg>
+      </span>
+      <h3>Rate flights</h3>
+      <p>Review and comment on flights you've taken.</p>
+      <span class="go">Rate →</span>
+    </a>
+  </div>
+
+  <div class="panel">
+    <h2 class="panel-title">Your upcoming flights</h2>
+    {{ flight_table(upcoming, empty="No upcoming flights yet — search to book one.") }}
+  </div>
+</main>
+{% endblock %}

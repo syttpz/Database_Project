@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Sign in · SkyWay Airlines{% endblock %}
+
+{% block content %}
+<main class="center">
+  <div class="card">
+    <h1>Welcome back</h1>
+    <p class="sub">Sign in as a customer or airline staff.</p>
+
+    <!-- Role tabs -->
+    <div class="tabs">
+      <button class="tab active" data-role="customer" type="button">Customer</button>
+      <button class="tab" data-role="staff" type="button">Airline Staff</button>
+    </div>
+
+    <form action="{{ url_for('login') }}" method="post">
+      <input type="hidden" name="role" id="role" value="customer" />
+
+      <div class="field">
+        <label for="username" id="username-label">Email</label>
+        <input type="text" id="username" name="username"
+               placeholder="you@example.com" required />
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password"
+               placeholder="••••••••" required />
+      </div>
+
+      <button class="btn" type="submit">Sign in</button>
+    </form>
+
+    <p class="hint">
+      Demo logins (no database needed):<br />
+      Customer — <b>customer@demo.com</b> / <b>demo</b><br />
+      Staff — <b>staff</b> / <b>demo</b>
+    </p>
+
+    <p class="foot">
+      No account yet? <a href="{{ url_for('register') }}">Register</a><br />
+      <a href="{{ url_for('search') }}">Search flights without signing in →</a>
+    </p>
+  </div>
+</main>
+
+<script>
+  const tabs = document.querySelectorAll(".tab");
+  const roleInput = document.getElementById("role");
+  const label = document.getElementById("username-label");
+  const user = document.getElementById("username");
+  tabs.forEach((t) => {
+    t.addEventListener("click", () => {
+      tabs.forEach((x) => x.classList.remove("active"));
+      t.classList.add("active");
+      const role = t.dataset.role;
+      roleInput.value = role;
+      if (role === "customer") {
+        label.textContent = "Email";
+        user.placeholder = "you@example.com";
+      } else {
+        label.textContent = "Username";
+        user.placeholder = "staff username";
+      }
+    });
+  });
+</script>
+{% endblock %}

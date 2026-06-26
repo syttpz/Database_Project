@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Change flight status · SkyWay Staff{% endblock %}
+
+{% block content %}
+<main class="form-wrap">
+  <div class="form-panel">
+    <h1>Change flight status</h1>
+    <p class="sub">Switch a flight between on-time and delayed.</p>
+
+    <form action="{{ url_for('staff_change_status') }}" method="post">
+      <div class="form-grid">
+        <div class="field" style="grid-column: 1 / -1;">
+          <label for="flight">Flight</label>
+          <select id="flight" name="flight" onchange="syncFlight(this)" required>
+            <option value="">— Select a flight —</option>
+            {% for fl in flights %}
+            <option value="{{ fl.flight_number }}|{{ fl.departure_datetime }}">
+              {{ fl.flight_number }} · {{ fl.departure_airport }} → {{ fl.arrival_airport }}
+              · {{ fl.departure_datetime }} · ({{ fl.status or 'on-time' }})
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <input type="hidden" name="flight_number" id="flight_number" />
+      <input type="hidden" name="flight_date" id="flight_date" />
+
+      <div class="field">
+        <label for="status">New status</label>
+        <select id="status" name="status" required>
+          <option value="on-time">On-time</option>
+          <option value="delayed">Delayed</option>
+        </select>
+      </div>
+
+      <div class="filter-actions">
+        <button class="btn" type="submit">Update status</button>
+      </div>
+    </form>
+  </div>
+</main>
+
+<script>
+  function syncFlight(sel) {
+    const [number, date] = (sel.value || "|").split("|");
+    document.getElementById("flight_number").value = number;
+    document.getElementById("flight_date").value = date;
+  }
+</script>
+{% endblock %}

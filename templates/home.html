@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}SkyWay Airlines · Book flights{% endblock %}
+
+{% block content %}
+<main class="search-wrap">
+  <div class="search-hero">
+    <h1>Fly with SkyWay</h1>
+    <p>Search future flights — no account needed. Sign in to book.</p>
+  </div>
+
+  <!-- Public search panel (one-way / round-trip) -->
+  <div class="search-panel">
+    <form action="{{ url_for('search') }}" method="get">
+      <div class="segmented" role="tablist">
+        <label><input type="radio" name="trip_type" value="oneway" checked /> One way</label>
+        <label><input type="radio" name="trip_type" value="round" /> Round trip</label>
+      </div>
+
+      <div class="filter-grid">
+        <div class="field">
+          <label for="source">From (city or airport)</label>
+          <input type="text" id="source" name="source" placeholder="e.g. New York or JFK" />
+        </div>
+        <div class="field">
+          <label for="destination">To (city or airport)</label>
+          <input type="text" id="destination" name="destination" placeholder="e.g. Shanghai or PVG" />
+        </div>
+        <div class="field">
+          <label for="depart_date">Departure date</label>
+          <input type="date" id="depart_date" name="depart_date" />
+        </div>
+        <div class="field js-return-field">
+          <label for="return_date">Return date</label>
+          <input type="date" id="return_date" name="return_date" />
+        </div>
+      </div>
+
+      <div class="filter-actions">
+        <button class="btn" type="submit">Search flights</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Entry points -->
+  <div class="cta-row">
+    <a class="cta-card" href="{{ url_for('login') }}">
+      <h3>Already a member?</h3>
+      <p>Log in as a customer or airline staff.</p>
+      <span class="go">Log in →</span>
+    </a>
+    <a class="cta-card" href="{{ url_for('register') }}">
+      <h3>New here?</h3>
+      <p>Register as a customer or airline staff.</p>
+      <span class="go">Create account →</span>
+    </a>
+  </div>
+</main>
+
+<script>
+  // Show/hide the return-date field based on trip type.
+  const radios = document.querySelectorAll('input[name="trip_type"]');
+  const ret = document.querySelector('.js-return-field');
+  function sync() {
+    const round = document.querySelector('input[name="trip_type"]:checked').value === "round";
+    ret.style.visibility = round ? "visible" : "hidden";
+  }
+  radios.forEach((r) => r.addEventListener("change", sync));
+  sync();
+</script>
+{% endblock %}

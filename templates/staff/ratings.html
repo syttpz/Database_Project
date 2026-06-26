@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Flight ratings · SkyWay Staff{% endblock %}
+
+{% block content %}
+<main class="dash-wrap">
+  <div class="dash-head"><h1>Flight ratings</h1><p>Average rating and customer comments per flight.</p></div>
+
+  {% for r in ratings %}
+  <div class="panel">
+    <div class="rating-head">
+      <h3>{{ r.flight_number }} <span class="muted">· {{ r.flight_date }}</span></h3>
+      <div class="avg-rating">
+        <span class="stars">{{ "★" * (r.avg_rating | round(0, 'floor') | int) }}{{ "☆" * (5 - (r.avg_rating | round(0, 'floor') | int)) }}</span>
+        <b>{{ "%.1f"|format(r.avg_rating) }}</b> / 5
+      </div>
+    </div>
+    <ul class="comment-list">
+      {% for c in r.comments %}
+      <li>
+        <div class="comment-top">
+          <span class="comment-author">{{ c.customer }}</span>
+          <span class="comment-stars">{{ "★" * c.rating }}{{ "☆" * (5 - c.rating) }}</span>
+        </div>
+        <p>{{ c.comment }}</p>
+      </li>
+      {% else %}
+      <li class="muted">No comments for this flight yet.</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% else %}
+  <div class="panel"><p class="td-empty">No ratings available yet.</p></div>
+  {% endfor %}
+</main>
+{% endblock %}

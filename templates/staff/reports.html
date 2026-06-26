@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Reports · SkyWay Staff{% endblock %}
+
+{% block content %}
+<main class="dash-wrap">
+  <div class="dash-head"><h1>Sales reports</h1><p>Ticket sales for your airline.</p></div>
+
+  <div class="panel">
+    <form class="filter-bar" method="get" action="{{ url_for('staff_reports') }}">
+      <div class="field">
+        <label for="range">Range</label>
+        <select id="range" name="range">
+          <option value="last_month" {{ 'selected' if f.range == 'last_month' }}>Last month</option>
+          <option value="last_year" {{ 'selected' if f.range == 'last_year' }}>Last year</option>
+          <option value="custom" {{ 'selected' if f.range == 'custom' }}>Custom range</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="start_date">From</label>
+        <input type="date" id="start_date" name="start_date" value="{{ f.start_date }}" />
+      </div>
+      <div class="field">
+        <label for="end_date">To</label>
+        <input type="date" id="end_date" name="end_date" value="{{ f.end_date }}" />
+      </div>
+      <button class="btn" type="submit">Apply</button>
+    </form>
+
+    <div class="stat-cards">
+      <div class="stat-card">
+        <span class="stat-label">Total tickets sold</span>
+        <span class="stat-value">{{ total_sales }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2 class="panel-title">Tickets sold by month</h2>
+
+    {% if monthly %}
+    {% set max_count = (monthly | map(attribute='count') | max) or 1 %}
+    <div class="bar-chart">
+      {% for m in monthly %}
+      <div class="bar-col">
+        <div class="bar-value">{{ m.count }}</div>
+        <div class="bar" style="height: {{ (m.count / max_count * 100) | round(0) }}%;"></div>
+        <div class="bar-label">{{ m.month }}</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="table-wrap" style="margin-top:24px;">
+      <table class="data-table">
+        <thead><tr><th>Month</th><th>Tickets sold</th><th>Revenue</th></tr></thead>
+        <tbody>
+          {% for m in monthly %}
+          <tr>
+            <td>{{ m.month }}</td><td>{{ m.count }}</td>
+            <td>{% if m.revenue is not none %}${{ m.revenue }}{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="td-empty">No sales data for this range yet.</p>
+    {% endif %}
+  </div>
+</main>
+{% endblock %}

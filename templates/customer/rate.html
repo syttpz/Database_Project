@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Rate flights · SkyWay{% endblock %}
+
+{% block content %}
+<main class="form-wrap">
+  <div class="form-panel">
+    <h1>Rate &amp; comment</h1>
+    <p class="sub">Review flights you've already taken for this airline.</p>
+
+    <form action="{{ url_for('customer_rate') }}" method="post">
+      <div class="form-grid">
+        <div class="field" style="grid-column: 1 / -1;">
+          <label for="flight">Flight</label>
+          <select id="flight" name="flight" onchange="syncFlight(this)">
+            <option value="">— Select a past flight —</option>
+            {% for fl in past_flights %}
+            <option
+              value="{{ fl.airline_name }}|{{ fl.flight_number }}|{{ fl.departure_datetime }}">
+              {{ fl.airline_name }} {{ fl.flight_number }} ·
+              {{ fl.departure_airport }} → {{ fl.arrival_airport }} ·
+              {{ fl.departure_datetime }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <!-- Hidden fields populated from the dropdown selection -->
+      <input type="hidden" name="airline_name" id="airline_name" />
+      <input type="hidden" name="flight_number" id="flight_number" />
+      <input type="hidden" name="flight_date" id="flight_date" />
+
+      <div class="field">
+        <label for="rating">Rating</label>
+        <select id="rating" name="rating" required>
+          <option value="5">★★★★★ (5)</option>
+          <option value="4">★★★★☆ (4)</option>
+          <option value="3">★★★☆☆ (3)</option>
+          <option value="2">★★☆☆☆ (2)</option>
+          <option value="1">★☆☆☆☆ (1)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="comment">Comment</label>
+        <textarea id="comment" name="comment" rows="4"
+                  placeholder="Share your experience…"></textarea>
+      </div>
+
+      <div class="filter-actions">
+        <button class="btn" type="submit">Submit review</button>
+      </div>
+    </form>
+  </div>
+</main>
+
+<script>
+  function syncFlight(sel) {
+    const [airline, number, date] = (sel.value || "||").split("|");
+    document.getElementById("airline_name").value = airline;
+    document.getElementById("flight_number").value = number;
+    document.getElementById("flight_date").value = date;
+  }
+</script>
+{% endblock %}

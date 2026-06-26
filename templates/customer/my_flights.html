@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "_macros.html" import flight_table %}
+{% block title %}My flights · SkyWay{% endblock %}
+
+{% block content %}
+<main class="dash-wrap">
+  <div class="dash-head"><h1>My flights</h1><p>Flights you've booked.</p></div>
+
+  <div class="panel">
+    <form class="filter-bar" method="get" action="{{ url_for('customer_my_flights') }}">
+      <div class="field">
+        <label for="scope">Show</label>
+        <select id="scope" name="scope">
+          <option value="future" {{ 'selected' if f.scope == 'future' }}>Future flights</option>
+          <option value="past" {{ 'selected' if f.scope == 'past' }}>Past flights</option>
+          <option value="all" {{ 'selected' if f.scope == 'all' }}>All flights</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="source">From</label>
+        <input type="text" id="source" name="source" value="{{ f.source }}" placeholder="city/airport" />
+      </div>
+      <div class="field">
+        <label for="destination">To</label>
+        <input type="text" id="destination" name="destination" value="{{ f.destination }}" placeholder="city/airport" />
+      </div>
+      <div class="field">
+        <label for="start_date">From date</label>
+        <input type="date" id="start_date" name="start_date" value="{{ f.start_date }}" />
+      </div>
+      <div class="field">
+        <label for="end_date">To date</label>
+        <input type="date" id="end_date" name="end_date" value="{{ f.end_date }}" />
+      </div>
+      <button class="btn" type="submit">Apply</button>
+    </form>
+
+    {{ flight_table(flights, empty="No flights found for these filters.") }}
+  </div>
+</main>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Purchase ticket · SkyWay{% endblock %}
+
+{% block content %}
+<main class="form-wrap">
+  <div class="form-panel">
+    <h1>Purchase ticket</h1>
+    <p class="sub">Confirm the flight and enter your payment details.</p>
+
+    <form action="{{ url_for('customer_purchase') }}" method="post">
+      <h4 class="form-section">Flight</h4>
+      <div class="form-grid">
+        <div class="field">
+          <label for="airline_name">Airline</label>
+          <input type="text" id="airline_name" name="airline_name"
+                 value="{{ flight.airline_name }}" readonly />
+        </div>
+        <div class="field">
+          <label for="flight_number">Flight number</label>
+          <input type="text" id="flight_number" name="flight_number"
+                 value="{{ flight.flight_number }}" readonly />
+        </div>
+        <div class="field">
+          <label for="flight_date">Departure date/time</label>
+          <input type="text" id="flight_date" name="flight_date"
+                 value="{{ flight.flight_date }}" readonly />
+        </div>
+        <div class="field">
+          <label>Price</label>
+          <input type="text" value="{% if flight.base_price %}${{ flight.base_price }}{% endif %}" readonly />
+        </div>
+      </div>
+
+      <h4 class="form-section">Payment</h4>
+      <div class="form-grid">
+        <div class="field">
+          <label for="card_type">Card type</label>
+          <select id="card_type" name="card_type">
+            <option value="credit">Credit</option>
+            <option value="debit">Debit</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="name_on_card">Name on card</label>
+          <input type="text" id="name_on_card" name="name_on_card" required />
+        </div>
+        <div class="field">
+          <label for="card_number">Card number</label>
+          <input type="text" id="card_number" name="card_number"
+                 inputmode="numeric" autocomplete="off" required />
+        </div>
+        <div class="field">
+          <label for="expiration_date">Expiration date</label>
+          <input type="month" id="expiration_date" name="expiration_date" required />
+        </div>
+      </div>
+      <p class="hint">Note: the security code (CVV) is not stored, per the project spec.</p>
+
+      <div class="filter-actions">
+        <button class="btn" type="submit">Confirm purchase</button>
+        <a class="btn ghost" href="{{ url_for('search') }}">Back to search</a>
+      </div>
+    </form>
+  </div>
+</main>
+{% endblock %}

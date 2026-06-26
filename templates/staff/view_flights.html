@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% from "_macros.html" import flight_table %}
+{% block title %}Flights · SkyWay Staff{% endblock %}
+
+{% block content %}
+<main class="dash-wrap">
+  <div class="dash-head"><h1>Flights</h1><p>Flights operated by your airline.</p></div>
+
+  <div class="panel">
+    <form class="filter-bar" method="get" action="{{ url_for('staff_view_flights') }}">
+      <div class="field">
+        <label for="scope">Show</label>
+        <select id="scope" name="scope">
+          <option value="future" {{ 'selected' if f.scope == 'future' }}>Future</option>
+          <option value="past" {{ 'selected' if f.scope == 'past' }}>Past</option>
+          <option value="all" {{ 'selected' if f.scope == 'all' }}>All</option>
+          <option value="range" {{ 'selected' if f.scope == 'range' }}>Date range</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="start_date">From date</label>
+        <input type="date" id="start_date" name="start_date" value="{{ f.start_date }}" />
+      </div>
+      <div class="field">
+        <label for="end_date">To date</label>
+        <input type="date" id="end_date" name="end_date" value="{{ f.end_date }}" />
+      </div>
+      <div class="field">
+        <label for="source">From</label>
+        <input type="text" id="source" name="source" value="{{ f.source }}" placeholder="city/airport" />
+      </div>
+      <div class="field">
+        <label for="destination">To</label>
+        <input type="text" id="destination" name="destination" value="{{ f.destination }}" placeholder="city/airport" />
+      </div>
+      <button class="btn" type="submit">Apply</button>
+    </form>
+
+    {{ flight_table(flights, empty="No flights match these filters.") }}
+  </div>
+
+  <!-- Drill into a single flight's passengers -->
+  <div class="panel">
+    <h2 class="panel-title">Passengers on a flight</h2>
+    <form class="filter-bar" method="get" action="{{ url_for('staff_view_flights') }}">
+      <div class="field">
+        <label for="flight_number">Flight number</label>
+        <input type="text" id="flight_number" name="flight_number" value="{{ f.flight_number }}" />
+      </div>
+      <div class="field">
+        <label for="pdate">Departure date</label>
+        <input type="date" id="pdate" name="start_date" value="{{ f.start_date }}" />
+      </div>
+      <button class="btn" type="submit">View customers</button>
+    </form>
+
+    {% if selected_flight %}
+    <p class="muted">Customers on flight {{ selected_flight.flight_number }}
+      ({{ selected_flight.departure_datetime }}):</p>
+    {% endif %}
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Name</th><th>Email</th><th>Ticket ID</th><th>Purchase date</th></tr></thead>
+        <tbody>
+          {% for c in customers %}
+          <tr>
+            <td>{{ c.name }}</td><td>{{ c.email }}</td>
+            <td>{{ c.ticket_id }}</td><td>{{ c.purchase_datetime }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4" class="td-empty">Select a flight to see its passengers.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+{% endblock %}
