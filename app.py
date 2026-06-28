@@ -158,6 +158,9 @@ def search():
             ))
             return_results = cursor.fetchall()
 
+        #close connection
+        cursor.close()
+        conn.close()
     return render_template(
         "search.html", f=f, results=results,
         return_results=return_results, searched=searched,
@@ -192,6 +195,46 @@ def register_customer():
         }
         # TODO(db): INSERT customer (store md5(password)). Handle duplicate email.
         # On success:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        query = """
+        INSERT INTO Customer(
+            email,
+            name,
+            password,
+            building_number,
+            street,
+            city,
+            state,
+            phone_number,
+            passport_number,
+            passport_expiration,
+            passport_country,
+            date_of_birth
+        )
+        values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+
+        cursor.execute(query, (
+            data["email"],
+            data["name"],
+            data["password"],
+            data["building_number"],
+            data["street"],
+            data["city"],
+            data["state"],
+            data["phone_number"],
+            data["passport_number"],
+            data["passport_expiration"],
+            data["passport_country"],
+            data["date_of_birth"]
+        ))
+        conn.commit()
+
+        cursor.close()
+        conn.close()
+
         flash("Registration successful. Please log in.", "success")
         return redirect(url_for("login"))
     return render_template("register_customer.html")
