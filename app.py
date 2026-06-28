@@ -315,7 +315,7 @@ def login():
 
         cursor.close()
         conn.close()
-        
+
         display_name = username
 
         # --- DEMO bypass (remove once real auth works) ------------------
@@ -354,6 +354,23 @@ def customer_home():
     """Customer home page. Optionally show their upcoming flights."""
     upcoming = []
     # TODO(db): upcoming = future tickets/flights for session["user"].
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    query = """
+    SELECT f*,
+    FROM Ticket t 
+        JOIN Flight f on t.airline_name = f.airline_name
+        AND t.flight_number = f.flight_number
+        AND t.departure_datetime = f.departure_datetie
+    WHERE t.customer_email = %s;
+    """
+    cursor.execute(query, (session["user"]))
+    upcoming = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+    
     return render_template("customer/home.html", upcoming=upcoming)
 
 
@@ -373,6 +390,38 @@ def customer_my_flights():
     }
     flights = []
     # TODO(db): SELECT flights the customer bought tickets for, filtered by f.
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    query = """
+    SELECT f*,
+    FROM Ticket t 
+        JOIN Flight f on t.airline_name = f.airline_name
+        AND t.flight_number = f.flight_number
+        AND t.departure_datetime = f.departure_datetie
+    WHERE t.customer_email = %s 
+        AND f.departure_airport = %s
+        AND f.arrival_airport = %s
+        AND f.departure_datetime = %s
+        AND f.arrival_datetime = %s
+    """
+
+    if f["scope"] == "future":
+        query += " AND f.departure_datetime >= NOW()"
+    elif f["scope"] == "past":
+        query += " AND f.departure_datetime < NOW()"
+    cursor.execute(query, (
+        session["user"],
+        f["source"],
+        f["destination"],
+        f["start_date"],
+        f["end_date"]
+        ))
+    upcoming = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
     return render_template("customer/my_flights.html", flights=flights, f=f)
 
 
