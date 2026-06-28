@@ -128,14 +128,14 @@ def search():
         FROM Flight AS f
             JOIN Airport AS dep ON f.departure_airport = dep.name
             JOIN Airport AS arr ON f.arrival_airport = arr.name
-        WHERE dep.city = %s
-            AND arr.city = %s
+        WHERE (dep.city = %s OR dep.name = %s)
+            AND (arr.city = %s OR arr.name = %s)
             AND DATE(f.departure_datetime) = %s
         """
 
         cursor.execute(query, (
-            f["source"],
-            f["destination"],
+            f["source"], f["source"],
+            f["destination"], f["destination"],
             f["depart_date"]
         ))
 
@@ -144,8 +144,8 @@ def search():
         if f["trip_type"] == "round":
             # swapped destination and source
             cursor.execute(query, (
-                f["destination"],
-                f["source"],
+                f["destination"], f["destination"],
+                f["source"], f["source"],
                 f["return_date"]
             ))
             return_results = cursor.fetchall()
