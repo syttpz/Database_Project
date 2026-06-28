@@ -525,6 +525,7 @@ def customer_purchase():
 @app.route("/customer/rate", methods=["GET", "POST"])
 @role_required("customer")
 def customer_rate():
+    past_flights = []
     """Rate & comment on a previously-taken flight (for the logged-in airline)."""
     if request.method == "POST":
         data = {
@@ -536,10 +537,76 @@ def customer_rate():
         }
         # TODO(db): ensure the customer actually took this past flight, then
         #           INSERT/UPDATE the rating+comment.
-        flash("Thanks for your feedback!", "success")
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        pastflight_query = """
+        SELECT f.airline_name,
+            f.flight_number,
+            f.departure_datetime,
+            f.departure_airport,
+            f.arrival_airport
+        FROM Ticket t
+        JOIN Flight f
+        ON t.airline_name = f.airline_name
+        AND t.flight_number = f.flight_number
+        AND t.departure_datetime = f.departure_datetime
+        WHERE t.customer_email = %s
+        AND f.departure_datetime < NOW()
+        ORDER BY f.departure_datetime DESC;
+        """
+        cursor.execute(pastflight_query, (session["email"],))
+        past_flights = cursor.fetchall()
+
+        user_took_the_flight = """
+        SELECT 1
+        FROM Ticket
+        WHERE customer_email = %s
+        AND airline_name = %s
+        AND flight_number = %s
+        AND departure_datetime = %s;
+        """
+
+        cursor.execute(query, (
+            session["email"],
+            data["airline_name"],
+            data["flight_number"],
+            data["flight_date"]
+        ))
+
+        if cursor.fetchone() is None:
+            flash("You cannot rate this flight.")
+        else: 
+            query = """
+            INSERT INTO Review(
+                customer_email,
+                airline_name,
+                flight_number,
+                departure_datetime,
+                rating,
+                comment
+            )
+            VALUES (%s,%s,%s,%s,%s,%s)
+            ON DUPLICATE KEY UPDATE
+                rating = VALUES(rating),
+                comment = VALUES(comment);
+            """
+            cursor.execute(query, (
+                session["user"],
+                data["airline_name"],
+                data["flight_number"],
+                data["flight_date"],
+                data["rating"],
+                data["comment"]
+
+            ))
+            conn.commit()
+            cursor.close()
+            conn.close()
+            flash("Thanks for your feedback!", "success")
         return redirect(url_for("customer_rate"))
 
-    past_flights = []
+
     # TODO(db): past_flights = flights the customer already took (eligible to rate).
     return render_template("customer/rate.html", past_flights=past_flights)
 
