@@ -238,7 +238,7 @@ cursor = conn.cursor(dictionary=True)
 cursor.execute("SELECT name FROM Airline WHERE name = %s", ("JetBlue",))
 check("Existing airline (JetBlue) found", cursor.fetchone() is not None)
 cursor.execute("SELECT name FROM Airline WHERE name = %s", ("FakeAir",))
-check("Non-existent airline returns nothing (will auto-create)", cursor.fetchone() is None)
+check("Non-existent airline returns nothing (registration will be rejected)", cursor.fetchone() is None)
 cursor.close()
 conn.close()
 

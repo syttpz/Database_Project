@@ -40,18 +40,6 @@ app = Flask(__name__)
 app.secret_key = "change-me-in-production"  # TODO: load from env/config
 
 # ---------------------------------------------------------------------------
-# DEMO accounts — so you can log in and click through the UI before the
-# database/auth back-end is written. DELETE this block (and the demo check in
-# login()) once your real DB authentication is in place.
-# ---------------------------------------------------------------------------
-DEMO_LOGIN_ENABLED = True
-DEMO_USERS = {
-    "customer": {"username": "customer@demo.com", "password": "demo", "name": "Demo Customer"},
-    "staff": {"username": "staff", "password": "demo", "name": "Demo Staff", "airline": "JetBlue"},
-}
-
-
-# ---------------------------------------------------------------------------
 # Auth helpers
 # ---------------------------------------------------------------------------
 def login_required(view):
@@ -94,6 +82,7 @@ def inject_session():
     }
 
 
+# Fetches and caches the staff member's airline so we don't query every request
 def get_staff_airline():
     """Return the airline name for the logged-in staff member (cached in session)."""
     if "airline" in session:
@@ -219,16 +208,10 @@ def register_staff():
             (data["airline_name"],)
         )
         if not cursor.fetchone():
+            flash("Airline '" + data["airline_name"] + "' not found.", "error")
             cursor.close()
-            cursor = conn.cursor()
-            cursor.execute(
-                "INSERT INTO Airline (name) VALUES (%s)",
-                (data["airline_name"],)
-            )
-            conn.commit()
-            flash("Airline '" + data["airline_name"] + "' was created  as it did not exist.", "success")
-            cursor.close()
-            cursor = conn.cursor(dictionary=True)
+            conn.close()
+            return render_template("register_staff.html")
 
         cursor.close()
         cursor = conn.cursor()
@@ -269,6 +252,7 @@ def login():
         display_name = username
         airline = None
 
+        # Staff auth: verify username + MD5 password against Airline_Staff table
         if role == "staff":
             conn = get_connection()
             cursor = conn.cursor(dictionary=True)
@@ -284,16 +268,6 @@ def login():
                 authenticated = True
                 display_name = row["first_name"] + " " + row["last_name"]
                 airline = row["airline_name"]
-
-        # --- DEMO bypass (remove once real auth works) ------------------
-        if DEMO_LOGIN_ENABLED and not authenticated:
-            demo = DEMO_USERS.get(role)
-            if demo and username == demo["username"] and password == demo["password"]:
-                authenticated = True
-                display_name = demo["name"]
-                if role == "staff":
-                    airline = demo.get("airline", "JetBlue")
-        # ----------------------------------------------------------------
 
         if authenticated:
             session.clear()
@@ -409,6 +383,7 @@ def customer_rate():
 @role_required("staff")
 def staff_home():
     """Staff home — default: future flights for their airline (next 30 days)."""
+    # Shows only flights departing within the next 30 days for the staff's airline
     airline = get_staff_airline()
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
@@ -482,6 +457,7 @@ def staff_view_flights():
         )
     flights = cursor.fetchall()
 
+    # If a flight number is provided, also fetch the passenger list for that flight
     customers = []
     selected_flight = None
     if f["flight_number"]:
@@ -538,6 +514,7 @@ def staff_create_flight():
 
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
+        # Prevent duplicate flights with the same number and departure time
         query = """
             SELECT 1 FROM Flight
             WHERE airline_name = %s AND flight_number = %s AND departure_datetime = %s
@@ -644,6 +621,7 @@ def staff_add_airplane():
         airline = get_staff_airline()
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
+        # Prevent duplicate airplane IDs within the same airline
         query = """
             SELECT 1 FROM Airplane WHERE airline_name = %s AND ID = %s
         """
@@ -691,6 +669,7 @@ def staff_ratings():
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
+    # Get average rating per flight, then fetch individual comments for each
     query = """
         SELECT f.flight_number, f.departure_datetime AS flight_date,
                AVG(r.rating) AS avg_rating
@@ -757,6 +736,7 @@ def staff_reports():
         date_condition = "DATE(t.purchase_datetime) >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR)"
         params = (airline,)
 
+    # Total tickets sold and revenue for the selected date range
     query = """
         SELECT COUNT(*) AS cnt, SUM(f.price) AS total_revenue
         FROM Ticket t
@@ -769,6 +749,7 @@ def staff_reports():
     total_sales = row["cnt"] if row else 0
     total_revenue = float(row["total_revenue"]) if row and row["total_revenue"] else 0.0
 
+    # Monthly breakdown for the bar chart — month_sort keeps chronological order
     query = """
         SELECT DATE_FORMAT(t.purchase_datetime, '%M %Y') AS month,
                DATE_FORMAT(t.purchase_datetime, '%Y-%m') AS month_sort,
@@ -798,6 +779,7 @@ def staff_reports():
 @role_required("staff")
 def staff_flight_detail():
     """Full detail view for a single flight: info + airplane + passengers."""
+    # Linked from the home dashboard — shows everything about one flight in one screen
     airline = get_staff_airline()
     flight_number = request.args.get("flight_number", "")
     departure_datetime = request.args.get("departure_datetime", "")
