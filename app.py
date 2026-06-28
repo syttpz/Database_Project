@@ -1,34 +1,3 @@
-"""
-Air Ticket Reservation System  -  Flask front-end (Part 3).
-
-This file wires up every route/use-case required by the course project and
-renders the matching template. ALL DATABASE LOGIC IS LEFT AS `TODO` STUBS so
-you can drop in your own SQL (prepared statements) against your Part 2 schema.
-
-How the front-end and back-end meet
------------------------------------
-* Each route already gathers the relevant form fields / query args into a
-  Python dict and passes context variables to the template.
-* Templates render lists/dicts you hand them (e.g. `flights`, `airplanes`,
-  `reports`). They default to empty, so every page renders before you write
-  any SQL.
-* Replace each `# TODO(db): ...` block with your queries and set the variables
-  the template expects (documented in the docstring of each route).
-
-Session model
--------------
-* session["user"]  -> username (email for customers, username for staff)
-* session["role"]  -> "customer" or "staff"
-* session["name"]  -> display name (optional)
-Use the `@login_required` / `@role_required(...)` decorators to protect routes
-on the server side (do NOT rely on hiding links only).
-
-Security checklist (per the spec) — do these in your back-end:
-* Authenticate with password = md5(y)  (the spec mandates md5).
-* Use prepared statements / parameterized queries everywhere.
-* Escape user text in templates (Jinja auto-escapes by default — keep it on).
-"""
-
 from functools import wraps
 
 from flask import (
@@ -82,7 +51,6 @@ def inject_session():
     }
 
 
-# Fetches and caches the staff member's airline so we don't query every request
 def get_staff_airline():
     """Return the airline name for the logged-in staff member (cached in session)."""
     if "airline" in session:
@@ -203,12 +171,9 @@ def register_customer():
             "passport_country": request.form.get("passport_country", ""),
             "date_of_birth": request.form.get("date_of_birth", ""),
         }
-        # TODO(db): INSERT customer (store md5(password)). Handle duplicate email.
-        # On success:
         conn = get_connection()
         cursor = conn.cursor()
 
-        #TODO: check if email already registered
         query = """
         SELECT email
         FROM Customer
@@ -338,7 +303,6 @@ def login():
         display_name = username
         airline = None
 
-        # Staff auth: verify username + MD5 password against Airline_Staff table
         if role == "staff":
             conn = get_connection()
             cursor = conn.cursor(dictionary=True)
@@ -397,7 +361,6 @@ def logout():
 def customer_home():
     """Customer home page. Optionally show their upcoming flights."""
     upcoming = []
-    # TODO(db): upcoming = future tickets/flights for session["user"].
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
@@ -431,7 +394,6 @@ def customer_my_flights():
         "end_date": request.args.get("end_date", ""),
     }
     flights = []
-    # TODO(db): SELECT flights the customer bought tickets for, filtered by f.
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
@@ -509,9 +471,6 @@ def customer_purchase():
                                     flight_number=data["flight_number"],
                                     flight_date=data["flight_date"]))
 
-        # TODO(db): check the plane still has room (booked < capacity);
-        #           if full -> flash error & re-render. Otherwise INSERT ticket
-        #           (with purchase date/time) for session["user"].
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
 
@@ -687,7 +646,6 @@ def customer_rate():
 @role_required("staff")
 def staff_home():
     """Staff home — default: future flights for their airline (next 30 days)."""
-    # Shows only flights departing within the next 30 days for the staff's airline
     airline = get_staff_airline()
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
@@ -761,7 +719,6 @@ def staff_view_flights():
         )
     flights = cursor.fetchall()
 
-    # If a flight number is provided, also fetch the passenger list for that flight
     customers = []
     selected_flight = None
     if f["flight_number"]:
@@ -818,7 +775,6 @@ def staff_create_flight():
 
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
-        # Prevent duplicate flights with the same number and departure time
         query = """
             SELECT 1 FROM Flight
             WHERE airline_name = %s AND flight_number = %s AND departure_datetime = %s
@@ -925,7 +881,6 @@ def staff_add_airplane():
         airline = get_staff_airline()
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
-        # Prevent duplicate airplane IDs within the same airline
         query = """
             SELECT 1 FROM Airplane WHERE airline_name = %s AND ID = %s
         """
@@ -973,7 +928,6 @@ def staff_ratings():
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
-    # Get average rating per flight, then fetch individual comments for each
     query = """
         SELECT f.flight_number, f.departure_datetime AS flight_date,
                AVG(r.rating) AS avg_rating
@@ -1040,7 +994,6 @@ def staff_reports():
         date_condition = "DATE(t.purchase_datetime) >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR)"
         params = (airline,)
 
-    # Total tickets sold and revenue for the selected date range
     query = """
         SELECT COUNT(*) AS cnt, SUM(f.price) AS total_revenue
         FROM Ticket t
@@ -1053,7 +1006,6 @@ def staff_reports():
     total_sales = row["cnt"] if row else 0
     total_revenue = float(row["total_revenue"]) if row and row["total_revenue"] else 0.0
 
-    # Monthly breakdown for the bar chart — month_sort keeps chronological order
     query = """
         SELECT DATE_FORMAT(t.purchase_datetime, '%M %Y') AS month,
                DATE_FORMAT(t.purchase_datetime, '%Y-%m') AS month_sort,
@@ -1083,7 +1035,6 @@ def staff_reports():
 @role_required("staff")
 def staff_flight_detail():
     """Full detail view for a single flight: info + airplane + passengers."""
-    # Linked from the home dashboard — shows everything about one flight in one screen
     airline = get_staff_airline()
     flight_number = request.args.get("flight_number", "")
     departure_datetime = request.args.get("departure_datetime", "")
