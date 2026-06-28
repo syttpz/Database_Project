@@ -75,19 +75,11 @@ def get_staff_airline():
 # ===========================================================================
 @app.route("/")
 def home():
-    """Public home page: search box + register/login entry points."""
     return render_template("home.html")
 
 
 @app.route("/search")
 def search():
-    """Public flight search (one-way or round-trip). No login required.
-
-    Template expects:
-        results       -> list of flight dicts (see flight_card macro fields)
-        return_results-> list (round-trip return leg), optional
-        searched      -> bool, whether a search was performed
-    """
     f = {
         "trip_type": request.args.get("trip_type", "oneway"),
         "source": request.args.get("source", ""),       # city OR airport name
@@ -97,7 +89,6 @@ def search():
     }
     searched = bool(request.args)
 
-    #one way, round trip
     results, return_results = [], []
     if searched:
         pass
@@ -136,7 +127,6 @@ def search():
             ))
             return_results = cursor.fetchall()
 
-        #close connection
         cursor.close()
         conn.close()
     return render_template(
@@ -150,7 +140,6 @@ def search():
 # ---------------------------------------------------------------------------
 @app.route("/register")
 def register():
-    """Landing page letting the visitor pick Customer or Staff registration."""
     return render_template("register.html")
 
 
@@ -359,7 +348,6 @@ def logout():
 @app.route("/customer")
 @role_required("customer")
 def customer_home():
-    """Customer home page. Optionally show their upcoming flights."""
     upcoming = []
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
@@ -385,7 +373,6 @@ def customer_home():
 @app.route("/customer/my-flights")
 @role_required("customer")
 def customer_my_flights():
-    """View My Flights — default = future flights; optional filters."""
     f = {
         "scope": request.args.get("scope", "future"),
         "source": request.args.get("source", ""),
@@ -409,7 +396,7 @@ def customer_my_flights():
     """
     params = [session["user"]]
 
-    # Optional filters: only applied when the user actually supplied them.
+    # optional filters
     if f["source"]:
         query += " AND (f.departure_airport = %s OR dep.city = %s)"
         params += [f["source"], f["source"]]
@@ -474,7 +461,7 @@ def customer_purchase():
         conn = get_connection()
         cursor = conn.cursor(dictionary=True)
 
-        #capacity
+        # check seat capacity
         query = """
         SELECT
             a.num_seats,
@@ -551,7 +538,6 @@ def customer_purchase():
 @app.route("/customer/rate", methods=["GET", "POST"])
 @role_required("customer")
 def customer_rate():
-    """Rate & comment on a previously-taken flight (for the logged-in airline)."""
     if request.method == "POST":
         data = {
             "airline_name": request.form.get("airline_name", ""),
@@ -611,7 +597,6 @@ def customer_rate():
         conn.close()
         return redirect(url_for("customer_rate"))
 
-    # GET: list flights the customer already took (eligible to rate).
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
 
@@ -645,7 +630,6 @@ def customer_rate():
 @app.route("/staff")
 @role_required("staff")
 def staff_home():
-    """Staff home — default: future flights for their airline (next 30 days)."""
     airline = get_staff_airline()
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
@@ -668,11 +652,6 @@ def staff_home():
 @app.route("/staff/flights")
 @role_required("staff")
 def staff_view_flights():
-    """View flights with filters; optionally drill into a flight's customers.
-
-    Template expects: flights (list), f (filters), customers (list, optional),
-                      selected_flight (dict, optional).
-    """
     f = {
         "scope": request.args.get("scope", "future"),   # future|past|all|range
         "start_date": request.args.get("start_date", ""),
@@ -923,7 +902,6 @@ def staff_add_airplane():
 @app.route("/staff/ratings")
 @role_required("staff")
 def staff_ratings():
-    """Per-flight average rating + all comments for this airline's flights."""
     airline = get_staff_airline()
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
@@ -968,13 +946,6 @@ def staff_ratings():
 @app.route("/staff/reports")
 @role_required("staff")
 def staff_reports():
-    """Sales reports: totals by date range + month-wise tickets for a chart.
-
-    Template expects:
-        total_sales   -> number (for the selected range)
-        f             -> {range, start_date, end_date}
-        monthly       -> list of {month: "2026-01", count: N, revenue: X}
-    """
     f = {
         "range": request.args.get("range", "last_year"),  # last_month|last_year|custom
         "start_date": request.args.get("start_date", ""),
@@ -1034,7 +1005,6 @@ def staff_reports():
 @app.route("/staff/flights/detail")
 @role_required("staff")
 def staff_flight_detail():
-    """Full detail view for a single flight: info + airplane + passengers."""
     airline = get_staff_airline()
     flight_number = request.args.get("flight_number", "")
     departure_datetime = request.args.get("departure_datetime", "")
