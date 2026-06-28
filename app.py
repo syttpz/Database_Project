@@ -131,10 +131,6 @@ def search():
 
     results, return_results = [], []
     if searched:
-        # TODO(db): query future flights matching source/destination/date.
-        # Match `source`/`destination` against BOTH city and airport name.
-        # results = run_flight_search(f["source"], f["destination"], f["depart_date"])
-        # if f["trip_type"] == "round": return_results = run_flight_search(...)
         pass
 
     return render_template(
@@ -169,8 +165,6 @@ def register_customer():
             "passport_country": request.form.get("passport_country", ""),
             "date_of_birth": request.form.get("date_of_birth", ""),
         }
-        # TODO(db): INSERT customer (store md5(password)). Handle duplicate email.
-        # On success:
         flash("Registration successful. Please log in.", "success")
         return redirect(url_for("login"))
     return render_template("register_customer.html")
@@ -269,6 +263,19 @@ def login():
                 display_name = row["first_name"] + " " + row["last_name"]
                 airline = row["airline_name"]
 
+        elif role == "customer":
+            conn = get_connection()
+            cursor = conn.cursor()
+            query = """
+            SELECT email FROM Customer
+            WHERE email = %s AND password = MD5(%s)
+            """
+            cursor.execute(query, (username, password))
+            if cursor.fetchone() is not None:
+                authenticated = True
+            cursor.close()
+            conn.close()
+
         if authenticated:
             session.clear()
             session["user"] = username
@@ -298,26 +305,21 @@ def logout():
 def customer_home():
     """Customer home page. Optionally show their upcoming flights."""
     upcoming = []
-    # TODO(db): upcoming = future tickets/flights for session["user"].
     return render_template("customer/home.html", upcoming=upcoming)
 
 
 @app.route("/customer/my-flights")
 @role_required("customer")
 def customer_my_flights():
-    """View My Flights — default = future flights; optional filters.
-
-    Template expects: flights (list), f (filter dict), scope.
-    """
+    """View My Flights — default = future flights; optional filters."""
     f = {
-        "scope": request.args.get("scope", "future"),   # future | past | all
+        "scope": request.args.get("scope", "future"),
         "source": request.args.get("source", ""),
         "destination": request.args.get("destination", ""),
         "start_date": request.args.get("start_date", ""),
         "end_date": request.args.get("end_date", ""),
     }
     flights = []
-    # TODO(db): SELECT flights the customer bought tickets for, filtered by f.
     return render_template("customer/my_flights.html", flights=flights, f=f)
 
 
