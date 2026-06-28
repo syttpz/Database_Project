@@ -37,7 +37,7 @@ from flask import (
 from db import get_connection
 
 app = Flask(__name__)
-app.secret_key = "change-me-in-production"  # TODO: load from env/config
+app.secret_key = "dev-secret-change-me"
 
 # ---------------------------------------------------------------------------
 # Auth helpers
