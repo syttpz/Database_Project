@@ -198,6 +198,18 @@ def register_customer():
         conn = get_connection()
         cursor = conn.cursor()
 
+        #TODO: check if email already registered
+        query = """
+        SELECT email
+        FROM customer
+        WHERE email = %s
+        """
+        cursor.execute(query, (data["email"]))
+        registered = cursor.fetchone()
+        if registered:
+            flash("User Already Exist. Please Login.", "failed")
+            return render_template("register_customer.html")
+
         query = """
         INSERT INTO Customer(
             email,
@@ -276,7 +288,34 @@ def login():
         #       WHERE email=%s AND password=MD5(%s)
         #   else: row = SELECT ... FROM airline_staff
         #       WHERE username=%s AND password=MD5(%s)
-        authenticated = False  # <- set from your query result
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        if role == "customer":
+            query = """
+            SELECT email 
+            FROM Customer
+            WHERE email = %s AND password = MD5(%s)  
+            """
+        else:
+            query = """
+            SELECT email 
+            FROM Airline_Staff
+            WHERE email = %s AND password = MD5(%s)  
+            """
+        cursor.execute(query, (
+            username,
+            password
+        ))
+
+        if cursor.fetchone() == None:
+            authenticated = False
+        else:
+            authenticated = True
+
+        cursor.close()
+        conn.close()
+        
         display_name = username
 
         # --- DEMO bypass (remove once real auth works) ------------------
