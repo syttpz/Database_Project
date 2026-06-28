@@ -38,7 +38,7 @@
 
   <div class="panel">
     <h2 class="panel-title">Your flights — next 30 days</h2>
-    {{ flight_table(flights, empty="No upcoming flights in the next 30 days.") }}
+    {{ flight_table(flights, actions="detail", empty="No upcoming flights in the next 30 days.") }}
   </div>
 </main>
 {% endblock %}

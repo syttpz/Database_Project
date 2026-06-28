@@ -6,7 +6,9 @@
   <div class="card" style="text-align:center;">
     <h1>Goodbye 👋</h1>
     <p class="sub">You have been signed out. See you again soon!</p>
-    <a class="btn" href="{{ url_for('login') }}">Sign in again</a>
+    <div style="margin-top:20px;">
+      <a class="btn small" href="{{ url_for('login') }}">Sign in again</a>
+    </div>
     <p class="foot"><a href="{{ url_for('home') }}">Back to home</a></p>
   </div>
 </main>

@@ -31,6 +31,10 @@
         <span class="stat-label">Total tickets sold</span>
         <span class="stat-value">{{ total_sales }}</span>
       </div>
+      <div class="stat-card">
+        <span class="stat-label">Total revenue</span>
+        <span class="stat-value">${{ "%.2f"|format(total_revenue) }}</span>
+      </div>
     </div>
   </div>
 
@@ -44,7 +48,7 @@
       <div class="bar-col">
         <div class="bar-value">{{ m.count }}</div>
         <div class="bar" style="height: {{ (m.count / max_count * 100) | round(0) }}%;"></div>
-        <div class="bar-label">{{ m.month }}</div>
+        <div class="bar-label">{{ m.month.split(' ')[0] }}<br>{{ m.month.split(' ')[1] }}</div>
       </div>
       {% endfor %}
     </div>

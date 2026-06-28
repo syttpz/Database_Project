@@ -814,8 +814,8 @@ a {
   font-size: 11px;
   color: var(--muted);
   margin-top: 8px;
-  white-space: nowrap;
-  transform: rotate(-30deg);
+  text-align: center;
+  line-height: 1.3;
 }
 
 .logout-link {
