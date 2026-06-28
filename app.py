@@ -35,8 +35,10 @@ from flask import (
     Flask, render_template, request, redirect, url_for, jsonify, session, flash
 )
 
+#db connection
+from db import get_connection
+
 app = Flask(__name__)
-app.secret_key = "change-me-in-production"  # TODO: load from env/config
 
 # ---------------------------------------------------------------------------
 # DEMO accounts — so you can log in and click through the UI before the
@@ -120,13 +122,41 @@ def search():
     }
     searched = bool(request.args)
 
+    #one way, round trip
     results, return_results = [], []
+
     if searched:
-        # TODO(db): query future flights matching source/destination/date.
-        # Match `source`/`destination` against BOTH city and airport name.
-        # results = run_flight_search(f["source"], f["destination"], f["depart_date"])
-        # if f["trip_type"] == "round": return_results = run_flight_search(...)
-        pass
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        query = """
+        SELECT f*, 
+            dep.city AS depature_city, 
+            arr.city AS arrival_city
+        FROM Flight AS f
+            JOIN Airport AS dep ON f.depature_airport = dep.name
+            JOIN Airport AS arr ON f.arrival_airport = arr.name
+        WHERE dep.city = %s
+            AND arr.city = %s
+            AND DATE(f.departure_datetime) = %s
+        """
+
+        cursor.execute(query, (
+            f["source"],
+            f["destination"],
+            f["depart_date"]
+        ))
+
+        results = cursor.fetchall()
+
+        if f["trip_type"] == "round":
+            # swapped destination and source
+            cursor.execute(query, (
+                f["destination"],
+                f["source"],
+                f["return_date"]
+            ))
+            return_results = cursor.fetchall()
 
     return render_template(
         "search.html", f=f, results=results,
