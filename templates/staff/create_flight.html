@@ -20,12 +20,18 @@
 
         <div class="field">
           <label for="departure_airport">Departure airport</label>
-          <input list="airports" id="departure_airport" name="departure_airport" required />
+          <input list="airports" id="departure_airport" name="departure_airport" placeholder="Type to search…" required />
         </div>
         <div class="field">
           <label for="arrival_airport">Arrival airport</label>
-          <input list="airports" id="arrival_airport" name="arrival_airport" required />
+          <input list="airports" id="arrival_airport" name="arrival_airport" placeholder="Type to search…" required />
         </div>
+
+      <datalist id="airports">
+        {% for ap in airports %}
+        <option value="{{ ap.name }}">{{ ap.city }}, {{ ap.country }}</option>
+        {% endfor %}
+      </datalist>
 
         <div class="field">
           <label for="departure_datetime">Departure date &amp; time</label>
@@ -56,16 +62,10 @@
         </div>
       </div>
 
-      <!-- Airport autocomplete options -->
-      <datalist id="airports">
-        {% for ap in airports %}
-        <option value="{{ ap.name }}">{{ ap.city }}, {{ ap.country }}</option>
-        {% endfor %}
-      </datalist>
-
       <div class="filter-actions">
         <button class="btn" type="submit">Create flight</button>
-        <a class="btn ghost" href="{{ url_for('staff_view_flights') }}">Cancel</a>
+        <a class="btn ghost" href="{{ url_for('staff_view_flights') }}"
+           style="display:inline-flex;align-items:center;justify-content:center;height:48px;text-decoration:none;">Cancel</a>
       </div>
     </form>
   </div>
