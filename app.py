@@ -438,6 +438,20 @@ def customer_purchase():
             "name_on_card": request.form.get("name_on_card", ""),
             "expiration_date": request.form.get("expiration_date", ""),
         }
+        # Card expiry comes in as MM/YY (e.g. 07/29). The Ticket.expiration_date
+        # column is DATE, so normalize to the first day of that month:
+        # 07/29 -> 2029-07-01.
+        exp = data["expiration_date"].strip()
+        try:
+            mm, yy = exp.split("/")
+            data["expiration_date"] = f"20{int(yy):02d}-{int(mm):02d}-01"
+        except (ValueError, IndexError):
+            flash("Invalid expiration date. Use MM/YY (e.g. 07/29).")
+            return redirect(url_for("customer_purchase",
+                                    airline_name=data["airline_name"],
+                                    flight_number=data["flight_number"],
+                                    flight_date=data["flight_date"]))
+
         # TODO(db): check the plane still has room (booked < capacity);
         #           if full -> flash error & re-render. Otherwise INSERT ticket
         #           (with purchase date/time) for session["user"].
