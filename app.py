@@ -416,8 +416,9 @@ def customer_my_flights():
         f["destination"],
         f["start_date"],
         f["end_date"]
-        ))
-    upcoming = cursor.fetchall()
+    ))
+    
+    flights = cursor.fetchall()
 
     cursor.close()
     conn.close()
@@ -446,7 +447,70 @@ def customer_purchase():
         # TODO(db): check the plane still has room (booked < capacity);
         #           if full -> flash error & re-render. Otherwise INSERT ticket
         #           (with purchase date/time) for session["user"].
-        flash("Ticket purchased successfully!", "success")
+        conn = get_connection()
+        cursor = conn.cursor()
+        
+        #capacity
+        query = """
+        SELECT
+            a.num_seats,
+            COUNT(t.ID) AS booked
+        FROM Flight f
+        JOIN Airplane a
+            ON f.airline_name = a.airline_name
+        AND f.airplane_id = a.ID
+        LEFT JOIN Ticket t
+            ON f.airline_name = t.airline_name
+        AND f.flight_number = t.flight_number
+        AND f.departure_datetime = t.departure_datetime
+        WHERE f.airline_name = %s
+        AND f.flight_number = %s
+        AND f.departure_datetime = %s
+        GROUP BY a.num_seats;
+        """
+
+        cursor.execute(query, (
+            data["airline_name"],
+            data["flight_number"],
+            data["departure_datetime"]
+        ))
+        num_seats, booked = cursor.fetchall()
+
+        if booked >= num_seats:
+            flash("Flight is full.")
+        else:
+            query = """
+            INSERT INTO Ticket (
+                customer_email,
+                airline_name,
+                flight_number,
+                departure_datetime,
+                card_type,
+                card_number,
+                name_on_card,
+                expiration_date,
+                purchase_datetime
+            )
+            VALUES (
+                %s, %s, %s, %s,
+                %s, %s, %s, %s, NOW()
+            );
+            """
+            cursor.execute(query, (
+                session["user"],
+                data["airline_name"],
+                data["flight_number"],
+                data["departure_datetime"],
+                data["card_type"],
+                data["card_number"],
+                data["name_on_card"],
+                data["expiration_date"]
+            ))
+            conn.commit()
+        
+            flash("Ticket purchased successfully!", "success")
+        cursor.close()
+        conn.close()
         return redirect(url_for("customer_my_flights"))
 
     flight = {
