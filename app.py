@@ -129,10 +129,48 @@ def search():
     }
     searched = bool(request.args)
 
+    #one way, round trip
     results, return_results = [], []
     if searched:
         pass
 
+    if searched:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        query = """
+        SELECT f.*,
+            f.price AS base_price,
+            dep.city AS departure_city,
+            arr.city AS arrival_city
+        FROM Flight AS f
+            JOIN Airport AS dep ON f.departure_airport = dep.name
+            JOIN Airport AS arr ON f.arrival_airport = arr.name
+        WHERE (dep.city = %s OR dep.name = %s)
+            AND (arr.city = %s OR arr.name = %s)
+            AND DATE(f.departure_datetime) = %s
+        """
+
+        cursor.execute(query, (
+            f["source"], f["source"],
+            f["destination"], f["destination"],
+            f["depart_date"]
+        ))
+
+        results = cursor.fetchall()
+
+        if f["trip_type"] == "round":
+            # swapped destination and source
+            cursor.execute(query, (
+                f["destination"], f["destination"],
+                f["source"], f["source"],
+                f["return_date"]
+            ))
+            return_results = cursor.fetchall()
+
+        #close connection
+        cursor.close()
+        conn.close()
     return render_template(
         "search.html", f=f, results=results,
         return_results=return_results, searched=searched,
@@ -165,6 +203,60 @@ def register_customer():
             "passport_country": request.form.get("passport_country", ""),
             "date_of_birth": request.form.get("date_of_birth", ""),
         }
+        # TODO(db): INSERT customer (store md5(password)). Handle duplicate email.
+        # On success:
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        #TODO: check if email already registered
+        query = """
+        SELECT email
+        FROM Customer
+        WHERE email = %s
+        """
+        cursor.execute(query, (data["email"],))
+        registered = cursor.fetchone()
+        if registered:
+            flash("User Already Exist. Please Login.", "failed")
+            return render_template("register_customer.html")
+
+        query = """
+        INSERT INTO Customer(
+            email,
+            name,
+            password,
+            building_number,
+            street,
+            city,
+            state,
+            phone_number,
+            passport_number,
+            passport_expiration,
+            passport_country,
+            date_of_birth
+        )
+        values (%s, %s, MD5(%s), %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+
+        cursor.execute(query, (
+            data["email"],
+            data["name"],
+            data["password"],
+            data["building_number"],
+            data["street"],
+            data["city"],
+            data["state"],
+            data["phone_number"],
+            data["passport_number"],
+            data["passport_expiration"],
+            data["passport_country"],
+            data["date_of_birth"]
+        ))
+        conn.commit()
+
+        cursor.close()
+        conn.close()
+
         flash("Registration successful. Please log in.", "success")
         return redirect(url_for("login"))
     return render_template("register_customer.html")
@@ -305,6 +397,25 @@ def logout():
 def customer_home():
     """Customer home page. Optionally show their upcoming flights."""
     upcoming = []
+    # TODO(db): upcoming = future tickets/flights for session["user"].
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    query = """
+    SELECT f.*, f.price AS base_price
+    FROM Ticket t
+        JOIN Flight f on t.airline_name = f.airline_name
+        AND t.flight_number = f.flight_number
+        AND t.departure_datetime = f.departure_datetime
+    WHERE t.customer_email = %s
+    AND t.departure_datetime >= NOW();
+    """
+    cursor.execute(query, (session["user"],))
+    upcoming = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+    
     return render_template("customer/home.html", upcoming=upcoming)
 
 
@@ -320,6 +431,49 @@ def customer_my_flights():
         "end_date": request.args.get("end_date", ""),
     }
     flights = []
+    # TODO(db): SELECT flights the customer bought tickets for, filtered by f.
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    query = """
+    SELECT f.*, f.price AS base_price
+    FROM Ticket t
+        JOIN Flight f ON t.airline_name = f.airline_name
+        AND t.flight_number = f.flight_number
+        AND t.departure_datetime = f.departure_datetime
+        JOIN Airport dep ON f.departure_airport = dep.name
+        JOIN Airport arr ON f.arrival_airport = arr.name
+    WHERE t.customer_email = %s
+    """
+    params = [session["user"]]
+
+    # Optional filters: only applied when the user actually supplied them.
+    if f["source"]:
+        query += " AND (f.departure_airport = %s OR dep.city = %s)"
+        params += [f["source"], f["source"]]
+    if f["destination"]:
+        query += " AND (f.arrival_airport = %s OR arr.city = %s)"
+        params += [f["destination"], f["destination"]]
+    if f["start_date"]:
+        query += " AND f.departure_datetime >= %s"
+        params.append(f["start_date"])
+    if f["end_date"]:
+        query += " AND f.departure_datetime <= %s"
+        params.append(f["end_date"])
+
+    if f["scope"] == "future":
+        query += " AND f.departure_datetime >= NOW()"
+    elif f["scope"] == "past":
+        query += " AND f.departure_datetime < NOW()"
+
+    query += " ORDER BY f.departure_datetime"
+    cursor.execute(query, tuple(params))
+
+    flights = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
     return render_template("customer/my_flights.html", flights=flights, f=f)
 
 
@@ -341,10 +495,89 @@ def customer_purchase():
             "name_on_card": request.form.get("name_on_card", ""),
             "expiration_date": request.form.get("expiration_date", ""),
         }
+        # Card expiry comes in as MM/YY (e.g. 07/29). The Ticket.expiration_date
+        # column is DATE, so normalize to the first day of that month:
+        # 07/29 -> 2029-07-01.
+        exp = data["expiration_date"].strip()
+        try:
+            mm, yy = exp.split("/")
+            data["expiration_date"] = f"20{int(yy):02d}-{int(mm):02d}-01"
+        except (ValueError, IndexError):
+            flash("Invalid expiration date. Use MM/YY (e.g. 07/29).")
+            return redirect(url_for("customer_purchase",
+                                    airline_name=data["airline_name"],
+                                    flight_number=data["flight_number"],
+                                    flight_date=data["flight_date"]))
+
         # TODO(db): check the plane still has room (booked < capacity);
         #           if full -> flash error & re-render. Otherwise INSERT ticket
         #           (with purchase date/time) for session["user"].
-        flash("Ticket purchased successfully!", "success")
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        #capacity
+        query = """
+        SELECT
+            a.num_seats,
+            COUNT(t.ID) AS booked
+        FROM Flight f
+        JOIN Airplane a
+            ON f.airline_name = a.airline_name
+        AND f.airplane_id = a.ID
+        LEFT JOIN Ticket t
+            ON f.airline_name = t.airline_name
+        AND f.flight_number = t.flight_number
+        AND f.departure_datetime = t.departure_datetime
+        WHERE f.airline_name = %s
+        AND f.flight_number = %s
+        AND f.departure_datetime = %s
+        GROUP BY a.num_seats;
+        """
+
+        cursor.execute(query, (
+            data["airline_name"],
+            data["flight_number"],
+            data["flight_date"]
+        ))
+        row = cursor.fetchone()
+
+        if row is None:
+            flash("Flight not found.")
+        elif row["booked"] >= row["num_seats"]:
+            flash("Flight is full.")
+        else:
+            query = """
+            INSERT INTO Ticket (
+                customer_email,
+                airline_name,
+                flight_number,
+                departure_datetime,
+                card_type,
+                card_number,
+                name_on_card,
+                expiration_date,
+                purchase_datetime
+            )
+            VALUES (
+                %s, %s, %s, %s,
+                %s, %s, %s, %s, NOW()
+            );
+            """
+            cursor.execute(query, (
+                session["user"],
+                data["airline_name"],
+                data["flight_number"],
+                data["flight_date"],
+                data["card_type"],
+                data["card_number"],
+                data["name_on_card"],
+                data["expiration_date"]
+            ))
+            conn.commit()
+        
+            flash("Ticket purchased successfully!", "success")
+        cursor.close()
+        conn.close()
         return redirect(url_for("customer_my_flights"))
 
     flight = {
@@ -368,13 +601,82 @@ def customer_rate():
             "rating": request.form.get("rating", ""),      # 1..5
             "comment": request.form.get("comment", ""),
         }
-        # TODO(db): ensure the customer actually took this past flight, then
-        #           INSERT/UPDATE the rating+comment.
-        flash("Thanks for your feedback!", "success")
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        # Make sure the customer actually took this past flight before reviewing.
+        user_took_the_flight = """
+        SELECT 1
+        FROM Ticket
+        WHERE customer_email = %s
+        AND airline_name = %s
+        AND flight_number = %s
+        AND departure_datetime = %s;
+        """
+        cursor.execute(user_took_the_flight, (
+            session["user"],
+            data["airline_name"],
+            data["flight_number"],
+            data["flight_date"]
+        ))
+
+        if cursor.fetchone() is None:
+            flash("You cannot rate this flight.")
+        else:
+            query = """
+            INSERT INTO Review(
+                customer_email,
+                airline_name,
+                flight_number,
+                departure_datetime,
+                rating,
+                comment
+            )
+            VALUES (%s,%s,%s,%s,%s,%s)
+            ON DUPLICATE KEY UPDATE
+                rating = VALUES(rating),
+                comment = VALUES(comment);
+            """
+            cursor.execute(query, (
+                session["user"],
+                data["airline_name"],
+                data["flight_number"],
+                data["flight_date"],
+                data["rating"],
+                data["comment"]
+            ))
+            conn.commit()
+            flash("Thanks for your feedback!", "success")
+
+        cursor.close()
+        conn.close()
         return redirect(url_for("customer_rate"))
 
-    past_flights = []
-    # TODO(db): past_flights = flights the customer already took (eligible to rate).
+    # GET: list flights the customer already took (eligible to rate).
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    pastflight_query = """
+    SELECT f.airline_name,
+        f.flight_number,
+        f.departure_datetime,
+        f.departure_airport,
+        f.arrival_airport
+    FROM Ticket t
+    JOIN Flight f
+    ON t.airline_name = f.airline_name
+    AND t.flight_number = f.flight_number
+    AND t.departure_datetime = f.departure_datetime
+    WHERE t.customer_email = %s
+    AND f.departure_datetime < NOW()
+    ORDER BY f.departure_datetime DESC;
+    """
+    cursor.execute(pastflight_query, (session["user"],))
+    past_flights = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+
     return render_template("customer/rate.html", past_flights=past_flights)
 
 

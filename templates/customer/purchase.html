@@ -50,8 +50,11 @@
                  inputmode="numeric" autocomplete="off" required />
         </div>
         <div class="field">
-          <label for="expiration_date">Expiration date</label>
-          <input type="month" id="expiration_date" name="expiration_date" required />
+          <label for="expiration_date">Expiration date (MM/YY)</label>
+          <input type="text" id="expiration_date" name="expiration_date"
+                 placeholder="MM/YY" inputmode="numeric"
+                 pattern="(0[1-9]|1[0-2])/[0-9]{2}" maxlength="5"
+                 title="Use MM/YY, e.g. 07/29" required />
         </div>
       </div>
       <p class="hint">Note: the security code (CVV) is not stored, per the project spec.</p>
