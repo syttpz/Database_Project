@@ -59,8 +59,15 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 32px;
-  z-index: 10;
+  padding: 16px 32px;
+  z-index: 100;
+  background: transparent;
+  transition: background 0.25s, border-color 0.25s;
+  border-bottom: 1px solid transparent;
+}
+.topbar--scrolled {
+  background: rgba(6, 16, 40, 0.85);
+  border-bottom-color: rgba(255, 255, 255, 0.1);
 }
 
 .brand {
@@ -476,7 +483,7 @@ a {
 /* ---------- Flash messages ------------------------------------------------ */
 .flash-wrap {
   position: fixed;
-  top: 78px;
+  top: 72px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 20;

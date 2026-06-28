@@ -118,5 +118,13 @@
   </footer>
 
   {% block scripts %}{% endblock %}
+  <script>
+    const topbar = document.querySelector('.topbar');
+    function updateNav() {
+      topbar.classList.toggle('topbar--scrolled', window.scrollY > 10);
+    }
+    window.addEventListener('scroll', updateNav, { passive: true });
+    updateNav();
+  </script>
 </body>
 </html>
