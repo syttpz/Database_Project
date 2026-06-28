@@ -18,16 +18,22 @@
           {{ 'checked' if f.trip_type == 'round' }} /> Round trip</label>
       </div>
 
+      <datalist id="airport-list">
+        {% for ap in airports %}
+        <option value="{{ ap.name }}">{{ ap.city }}</option>
+        {% endfor %}
+      </datalist>
+
       <div class="filter-grid">
         <div class="field">
           <label for="source">From (city or airport)</label>
           <input type="text" id="source" name="source" value="{{ f.source }}"
-                 placeholder="e.g. New York or JFK" />
+                 placeholder="e.g. New York or JFK" list="airport-list" autocomplete="off" />
         </div>
         <div class="field">
           <label for="destination">To (city or airport)</label>
           <input type="text" id="destination" name="destination" value="{{ f.destination }}"
-                 placeholder="e.g. Shanghai or PVG" />
+                 placeholder="e.g. Shanghai or PVG" list="airport-list" autocomplete="off" />
         </div>
         <div class="field">
           <label for="depart_date">Departure date</label>
@@ -48,14 +54,18 @@
 
   {% if searched %}
   <section class="results">
-    <div class="meta">Departing flights — {{ results|length }} result(s)</div>
-    {{ flight_table(results, actions="buy" if current_role == "customer" else none,
-                    empty="No flights match your search.") }}
+    <div class="panel">
+      <h2 class="panel-title">Departing flights <span style="font-size:14px;font-weight:400;color:var(--muted);">{{ results|length }} result(s)</span></h2>
+      {{ flight_table(results, actions="buy" if current_role == "customer" else none,
+                      empty="No flights match your search.") }}
+    </div>
 
     {% if f.trip_type == "round" %}
-    <div class="meta" style="margin-top:22px;">Return flights — {{ return_results|length }} result(s)</div>
-    {{ flight_table(return_results, actions="buy" if current_role == "customer" else none,
-                    empty="No return flights match your search.") }}
+    <div class="panel">
+      <h2 class="panel-title">Return flights <span style="font-size:14px;font-weight:400;color:var(--muted);">{{ return_results|length }} result(s)</span></h2>
+      {{ flight_table(return_results, actions="buy" if current_role == "customer" else none,
+                      empty="No return flights match your search.") }}
+    </div>
     {% endif %}
   </section>
   {% endif %}

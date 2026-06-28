@@ -48,6 +48,12 @@
               flight_number=fl.flight_number,
               departure_datetime=fl.departure_datetime) }}">View →</a>
         </td>
+        {% elif actions == "customer_detail" %}
+        <td>
+          <a class="btn small" href="{{ url_for('customer_flight_detail',
+              flight_number=fl.flight_number,
+              departure_datetime=fl.departure_datetime) }}">View →</a>
+        </td>
         {% elif actions %}
         <td></td>
         {% endif %}

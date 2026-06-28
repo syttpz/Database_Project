@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Flight {{ flight.flight_number }} · SkyWay{% endblock %}
+
+{% block content %}
+<main class="dash-wrap">
+  <div class="dash-head">
+    <h1>Flight {{ flight.flight_number }}</h1>
+    <p>{{ flight.departure_airport }} → {{ flight.arrival_airport }}</p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+
+    <div class="panel">
+      <h2 class="panel-title">Flight info</h2>
+      <table class="data-table">
+        <tbody>
+          <tr><td><b>Airline</b></td><td>{{ flight.airline_name }}</td></tr>
+          <tr><td><b>Flight number</b></td><td>{{ flight.flight_number }}</td></tr>
+          <tr><td><b>Status</b></td><td>
+            <span class="badge {{ 'badge-delay' if flight.status == 'delayed' else 'badge-ok' }}">
+              {{ flight.status or 'on-time' }}
+            </span>
+          </td></tr>
+          <tr><td><b>From</b></td><td>{{ flight.departure_airport }}</td></tr>
+          <tr><td><b>Departure</b></td><td>{{ flight.departure_datetime }}</td></tr>
+          <tr><td><b>To</b></td><td>{{ flight.arrival_airport }}</td></tr>
+          <tr><td><b>Arrival</b></td><td>{{ flight.arrival_datetime }}</td></tr>
+          <tr><td><b>Price</b></td><td>${{ flight.base_price }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2 class="panel-title">Airplane</h2>
+      {% if flight.airplane_id %}
+      <table class="data-table">
+        <tbody>
+          <tr><td><b>ID</b></td><td>{{ flight.airplane_id }}</td></tr>
+          <tr><td><b>Manufacturer</b></td><td>{{ flight.manufacturer }}</td></tr>
+          <tr><td><b>Seats</b></td><td>{{ flight.num_seats }}</td></tr>
+          <tr><td><b>Age (years)</b></td><td>{{ flight.age }}</td></tr>
+        </tbody>
+      </table>
+      {% else %}
+      <p class="td-empty">No airplane info available.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div style="margin-top:12px;">
+    <a class="btn small ghost" href="{{ url_for('customer_my_flights') }}">← Back to my flights</a>
+  </div>
+</main>
+{% endblock %}

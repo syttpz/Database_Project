@@ -38,7 +38,7 @@
 
   <div class="panel">
     <h2 class="panel-title">Your upcoming flights</h2>
-    {{ flight_table(upcoming, empty="No upcoming flights yet — search to book one.") }}
+    {{ flight_table(upcoming, actions="customer_detail", empty="No upcoming flights yet — search to book one.") }}
   </div>
 </main>
 {% endblock %}

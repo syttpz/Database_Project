@@ -87,51 +87,70 @@ def search():
         "depart_date": request.args.get("depart_date", ""),
         "return_date": request.args.get("return_date", ""),
     }
-    searched = bool(request.args)
 
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT name, city FROM Airport ORDER BY name")
+    airports = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    searched = False
     results, return_results = [], []
-    if searched:
-        pass
 
-    if searched:
-        conn = get_connection()
-        cursor = conn.cursor(dictionary=True)
+    if "source" in request.args:
+        missing = []
+        if not f["source"]:
+            missing.append("From")
+        if not f["destination"]:
+            missing.append("To")
+        if not f["depart_date"]:
+            missing.append("Departure date")
+        if f["trip_type"] == "round" and not f["return_date"]:
+            missing.append("Return date")
 
-        query = """
-        SELECT f.*,
-            f.price AS base_price,
-            dep.city AS departure_city,
-            arr.city AS arrival_city
-        FROM Flight AS f
-            JOIN Airport AS dep ON f.departure_airport = dep.name
-            JOIN Airport AS arr ON f.arrival_airport = arr.name
-        WHERE (dep.city = %s OR dep.name = %s)
-            AND (arr.city = %s OR arr.name = %s)
-            AND DATE(f.departure_datetime) = %s
-        """
+        if missing:
+            flash("Please fill in: " + ", ".join(missing) + ".", "error")
+        else:
+            searched = True
+            conn = get_connection()
+            cursor = conn.cursor(dictionary=True)
 
-        cursor.execute(query, (
-            f["source"], f["source"],
-            f["destination"], f["destination"],
-            f["depart_date"]
-        ))
+            query = """
+            SELECT f.*,
+                f.price AS base_price,
+                dep.city AS departure_city,
+                arr.city AS arrival_city
+            FROM Flight AS f
+                JOIN Airport AS dep ON f.departure_airport = dep.name
+                JOIN Airport AS arr ON f.arrival_airport = arr.name
+            WHERE (dep.city = %s OR dep.name = %s)
+                AND (arr.city = %s OR arr.name = %s)
+                AND DATE(f.departure_datetime) = %s
+            """
 
-        results = cursor.fetchall()
-
-        if f["trip_type"] == "round":
-            # swapped destination and source
             cursor.execute(query, (
-                f["destination"], f["destination"],
                 f["source"], f["source"],
-                f["return_date"]
+                f["destination"], f["destination"],
+                f["depart_date"]
             ))
-            return_results = cursor.fetchall()
+            results = cursor.fetchall()
 
-        cursor.close()
-        conn.close()
+            if f["trip_type"] == "round":
+                # swapped destination and source
+                cursor.execute(query, (
+                    f["destination"], f["destination"],
+                    f["source"], f["source"],
+                    f["return_date"]
+                ))
+                return_results = cursor.fetchall()
+
+            cursor.close()
+            conn.close()
+
     return render_template(
         "search.html", f=f, results=results,
-        return_results=return_results, searched=searched,
+        return_results=return_results, searched=searched, airports=airports,
     )
 
 
@@ -546,6 +565,9 @@ def customer_rate():
             "rating": request.form.get("rating", ""),      # 1..5
             "comment": request.form.get("comment", ""),
         }
+        if not all([data["airline_name"], data["flight_number"], data["flight_date"]]):
+            flash("Please select a flight before submitting.", "error")
+            return redirect(url_for("customer_rate"))
         conn = get_connection()
         cursor = conn.cursor()
 
@@ -622,6 +644,37 @@ def customer_rate():
     conn.close()
 
     return render_template("customer/rate.html", past_flights=past_flights)
+
+
+@app.route("/customer/flights/detail")
+@role_required("customer")
+def customer_flight_detail():
+    flight_number = request.args.get("flight_number", "")
+    departure_datetime = request.args.get("departure_datetime", "")
+
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        "SELECT f.airline_name, f.flight_number, f.departure_airport, f.arrival_airport,"
+        " f.departure_datetime, f.arrival_datetime, f.price AS base_price, f.status,"
+        " a.ID AS airplane_id, a.num_seats, a.company AS manufacturer, a.age"
+        " FROM Ticket t"
+        " JOIN Flight f ON t.airline_name = f.airline_name"
+        "   AND t.flight_number = f.flight_number"
+        "   AND t.departure_datetime = f.departure_datetime"
+        " LEFT JOIN Airplane a ON f.airplane_id = a.ID AND f.airline_name = a.airline_name"
+        " WHERE t.customer_email = %s AND f.flight_number = %s AND f.departure_datetime = %s",
+        (session["user"], flight_number, departure_datetime)
+    )
+    flight = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    if not flight:
+        flash("Flight not found.", "error")
+        return redirect(url_for("customer_my_flights"))
+
+    return render_template("customer/flight_detail.html", flight=flight)
 
 
 # ===========================================================================

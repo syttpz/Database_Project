@@ -304,8 +304,13 @@ a {
   padding: 0 28px;
 }
 .btn.ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: #eef2f9;
   color: #38435a;
+  text-decoration: none;
+  box-sizing: border-box;
 }
 .btn.ghost:hover {
   background: #e2e8f3;

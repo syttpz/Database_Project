@@ -35,7 +35,7 @@
       <button class="btn" type="submit">Apply</button>
     </form>
 
-    {{ flight_table(flights, empty="No flights found for these filters.") }}
+    {{ flight_table(flights, actions="customer_detail", empty="No flights found for these filters.") }}
   </div>
 </main>
 {% endblock %}
